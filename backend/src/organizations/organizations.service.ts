@@ -85,8 +85,33 @@ export class OrganizationsService {
   }
 
   async findAll(user?: CurrentUserData) {
-    // For now, return all active organizations
-    // Later, we can filter by organizations the user belongs to
+    // If no user context (e.g. Onboarding), return all active organizations
+    if (!user) {
+      return this.prisma.organization.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // If ADMIN, return all active organizations
+    if (user.role === 'ADMIN') {
+      return this.prisma.organization.findMany({
+        where: { isActive: true },
+        include: {
+          _count: {
+            select: {
+              members: true,
+              tasks: true,
+              timeEntries: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // Otherwise, return all active organizations so users can see "Available Networks" to join
+    // But we should ensure permissions for specific nodes are checked in findOne
     return this.prisma.organization.findMany({
       where: { isActive: true },
       include: {

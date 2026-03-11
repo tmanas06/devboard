@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { api } from '@/lib/api';
@@ -89,12 +89,36 @@ const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string; bord
 
 // ─── Component Props ──────────────────────────────────────────────────
 interface KanbanBoardProps {
-    tasks: Task[];
+    tasks?: Task[]; // Make tasks optional since we'll fetch them if not provided
+    organizationId?: string; // Add organizationId prop
 }
 
-export function KanbanBoard({ tasks }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, organizationId }: KanbanBoardProps) {
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
+
+    // ─── Fetch tasks for Kanban board ────────────────────────────────
+    const { data: fetchedTasks } = useQuery({
+        queryKey: ['tasks', 'board', organizationId],
+        queryFn: async () => {
+            const token = await getToken();
+            const params = new URLSearchParams();
+            if (organizationId) {
+                params.append('organizationId', organizationId);
+            }
+            const qs = params.toString();
+            // We use the same /tasks endpoint but without pagination limits to get all tasks for the board
+            // The backend /tasks/board endpoint already groups them
+            const response = await api.get(`/tasks?limit=1000${qs ? '&' + qs : ''}`, {
+                headers: { Authorization: token ? `Bearer ${token}` : undefined },
+            });
+            return response.data.items as Task[];
+        },
+        enabled: !initialTasks, // Only fetch if tasks weren't provided directly
+        refetchInterval: 5000,
+    });
+
+    const tasks = initialTasks || fetchedTasks || [];
 
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
@@ -117,15 +141,20 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
         },
         onMutate: async ({ id, status }) => {
             await queryClient.cancelQueries({ queryKey: ['tasks'] });
-            const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
-            queryClient.setQueriesData<Task[]>({ queryKey: ['tasks'] }, (old) =>
-                old?.map((t) => (t.id === id ? { ...t, status } : t))
-            );
-            return { previousTasks };
+            
+            // Optimistically update initial tasks query
+            if (!initialTasks) {
+                const previousTasks = queryClient.getQueryData<Task[]>(['tasks', 'board', organizationId]);
+                queryClient.setQueriesData<Task[]>({ queryKey: ['tasks', 'board', organizationId] }, (old) =>
+                    old?.map((t) => (t.id === id ? { ...t, status } : t))
+                );
+                return { previousTasks };
+            }
+            return { previousTasks: null };
         },
         onError: (_err, _vars, context) => {
-            if (context?.previousTasks) {
-                queryClient.setQueriesData({ queryKey: ['tasks'] }, context.previousTasks);
+            if (context?.previousTasks && !initialTasks) {
+                queryClient.setQueriesData({ queryKey: ['tasks', 'board', organizationId] }, context.previousTasks);
             }
         },
         onSettled: () => {
@@ -134,7 +163,7 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
     });
 
     // ─── Group tasks by status ────────────────────────────────────────
-    const grouped = tasks.reduce(
+    const grouped = (tasks as Task[]).reduce(
         (acc, task) => {
             if (!acc[task.status]) acc[task.status] = [];
             acc[task.status].push(task);

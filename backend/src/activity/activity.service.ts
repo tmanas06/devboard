@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActivityAction } from '@prisma/client';
 import { QueryActivityDto } from './dto/query-activity.dto';
@@ -36,10 +36,18 @@ export class ActivityService {
      * Fetch activity logs for the user's organization with filters + pagination.
      */
     async findAll(query: QueryActivityDto, user: CurrentUserData) {
-        const { action, entityType, userId, startDate, endDate, page = 1, limit = 30 } = query;
+        const { organizationId, action, entityType, userId, startDate, endDate, page = 1, limit = 30 } = query;
+        const targetOrgId = organizationId || user.organizationId;
+
+        if (user.role !== 'ADMIN') {
+            const isMember = user.organizationMemberships.some(m => m.organizationId === targetOrgId);
+            if (!isMember) {
+                throw new ForbiddenException('You can only access logs from organizations you belong to');
+            }
+        }
 
         const where: any = {
-            organizationId: user.organizationId,
+            organizationId: targetOrgId,
         };
 
         if (action) where.action = action;
@@ -80,10 +88,18 @@ export class ActivityService {
      */
     async exportCsv(query: QueryActivityDto, user: CurrentUserData): Promise<string> {
         // Fetch all matching records (no pagination)
-        const { action, entityType, userId, startDate, endDate } = query;
+        const { organizationId, action, entityType, userId, startDate, endDate } = query;
+        const targetOrgId = organizationId || user.organizationId;
+
+        if (user.role !== 'ADMIN') {
+            const isMember = user.organizationMemberships.some(m => m.organizationId === targetOrgId);
+            if (!isMember) {
+                throw new ForbiddenException('You can only access logs from organizations you belong to');
+            }
+        }
 
         const where: any = {
-            organizationId: user.organizationId,
+            organizationId: targetOrgId,
         };
         if (action) where.action = action;
         if (entityType) where.entityType = entityType;

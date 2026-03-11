@@ -17,6 +17,11 @@ export class QueryActivityDto {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
+    organizationId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
     userId?: string;
 
     @ApiPropertyOptional()

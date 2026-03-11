@@ -169,27 +169,27 @@ export class TimeEntriesService {
     const { organizationId, userIds, taskId, startDate, endDate } = query;
     const where: any = {};
 
-    if (user.role === 'ADMIN') {
-      if (organizationId) {
-        where.organizationId = organizationId;
+    if (user.role !== 'ADMIN') {
+      const targetOrgId = organizationId || user.organizationId;
+      
+      const isMember = user.organizationMemberships.some(m => m.organizationId === targetOrgId);
+      if (!isMember) {
+        throw new ForbiddenException('You can only access entries from organizations you belong to');
       }
-    } else if (user.role === 'ORG_ADMIN') {
-      where.organizationId = user.organizationId;
-      if (organizationId && organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access entries from your organization');
-      }
-    } else {
-      where.userId = user.id;
-      where.organizationId = user.organizationId;
-      if (userIds && userIds.length > 0) {
-        const hasOtherUser = userIds.some(id => id !== user.id);
-        if (hasOtherUser) {
-          throw new ForbiddenException('You can only access your own time entries');
+      
+      where.organizationId = targetOrgId;
+
+      if (user.role === 'MEMBER') {
+        where.userId = user.id;
+        if (userIds && userIds.length > 0) {
+          const hasOtherUser = userIds.some(id => id !== user.id);
+          if (hasOtherUser) {
+            throw new ForbiddenException('You can only access your own time entries');
+          }
         }
       }
-      if (organizationId && organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access entries from your organization');
-      }
+    } else if (organizationId) {
+      where.organizationId = organizationId;
     }
 
     if (userIds && userIds.length > 0 && user.role !== 'MEMBER') {
@@ -236,11 +236,17 @@ export class TimeEntriesService {
     }
 
     // Check access based on role
-    if (user.role === 'MEMBER' && timeEntry.userId !== user.id) {
-      throw new ForbiddenException('You can only access your own time entries');
-    }
-    if (user.role === 'ORG_ADMIN' && timeEntry.organizationId !== user.organizationId) {
-      throw new ForbiddenException('You can only access entries from your organization');
+    if (user.role !== 'ADMIN') {
+      const isMember = user.organizationMemberships.some(
+        (m) => m.organizationId === timeEntry.organizationId,
+      );
+      if (!isMember) {
+        throw new ForbiddenException('You can only access entries from organizations you belong to');
+      }
+
+      if (user.role === 'MEMBER' && timeEntry.userId !== user.id) {
+        throw new ForbiddenException('You can only access your own time entries');
+      }
     }
     // ADMIN can access all entries
 
@@ -396,19 +402,22 @@ export class TimeEntriesService {
       }
     } else if (user.role === 'ORG_ADMIN') {
       // OrgAdmin can only see entries in their organization
-      where.organizationId = user.organizationId;
-      if (organizationId && organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access entries from your organization');
-      }
+      const targetOrgId = organizationId || user.organizationId;
+      where.organizationId = targetOrgId;
+      // Access controlled by targetOrgId
     } else {
       // MEMBER can only see their own entries
       where.userId = user.id;
-      where.organizationId = user.organizationId;
+      const targetOrgId = organizationId || user.organizationId;
+      where.organizationId = targetOrgId;
+      
+      const isMember = user.organizationMemberships.some(m => m.organizationId === targetOrgId);
+      if (!isMember) {
+        throw new ForbiddenException('You can only access entries from organizations you belong to');
+      }
+
       if (userIds && userIds.length > 0 && !userIds.includes(user.id)) {
         throw new ForbiddenException('You can only access your own time entries');
-      }
-      if (organizationId && organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access entries from your organization');
       }
     }
 

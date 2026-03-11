@@ -57,8 +57,8 @@ export class TasksController {
   @Get('board')
   @ApiOperation({ summary: 'Get node operations grouped by signature (Kanban)' })
   @ApiResponse({ status: 200, description: 'Tasks grouped by status' })
-  getBoard(@CurrentUser() user: CurrentUserData) {
-    return this.tasksService.findAllGroupedByStatus(user);
+  getBoard(@Query('organizationId') organizationId: string, @CurrentUser() user: CurrentUserData) {
+    return this.tasksService.findAllGroupedByStatus(organizationId, user);
   }
 
   @Get()

@@ -127,17 +127,10 @@ export class UsersService {
 
   async findAll(organizationId: string, user: CurrentUserData) {
     // ADMIN can access all organizations
-    if (user.role === 'ADMIN') {
-      // No restriction
-    } else if (user.role === 'ORG_ADMIN') {
-      // OrgAdmin can only see users in their organization
-      if (organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access users from your organization');
-      }
-    } else {
-      // MEMBER can only see users in their organization
-      if (organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access users from your organization');
+    if (user.role !== 'ADMIN') {
+      const isMember = user.organizationMemberships.some(m => m.organizationId === organizationId);
+      if (!isMember) {
+        throw new ForbiddenException('You can only access users from organizations you belong to');
       }
     }
 
@@ -204,18 +197,14 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Check access based on role - user must be member of the same organization
-    const userOrgMembership = foundUser.organizationMembers.find(
-      (m) => m.organizationId === user.organizationId,
+    // Check access based on role - user must share an organization
+    const hasSharedOrg = foundUser.organizationMembers.some(
+      (m) => user.organizationMemberships.some(um => um.organizationId === m.organizationId),
     );
 
-    if (user.role === 'MEMBER' && !userOrgMembership) {
-      throw new ForbiddenException('You can only access users from your organization');
+    if (user.role !== 'ADMIN' && !hasSharedOrg) {
+      throw new ForbiddenException('You can only access users from organizations you belong to');
     }
-    if (user.role === 'ORG_ADMIN' && !userOrgMembership) {
-      throw new ForbiddenException('You can only access users from your organization');
-    }
-    // ADMIN can access all users
 
     return {
       ...foundUser,

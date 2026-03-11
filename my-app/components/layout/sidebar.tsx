@@ -18,7 +18,7 @@ import { OrgSwitcher } from '@/components/org-switcher';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Tasks', href: '/dashboard/tasks', icon: CheckSquare },
-  { name: 'Time Entries', href: '/dashboard/time-entries', icon: Clock },
+  // { name: 'Time Entries', href: '/dashboard/time-entries', icon: Clock },
   { name: 'Activity', href: '/dashboard/activity', icon: Activity },
   { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Organizations', href: '/dashboard/organizations', icon: Building2 },

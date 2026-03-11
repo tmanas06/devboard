@@ -179,18 +179,23 @@ export class TasksService {
     const { organizationId, status, priority, assignedToIds, search } = query;
     const where: any = { isActive: true };
 
-    if (user.role === 'MEMBER') {
-      where.organizationId = user.organizationId;
-      where.assignedTo = { some: { id: user.id } };
-    } else if (user.role === 'ORG_ADMIN') {
-      where.organizationId = user.organizationId;
+    // Determine which organization we are targeting
+    const targetOrgId = organizationId || user.organizationId;
+
+    if (targetOrgId) {
+      if (user.role !== 'ADMIN') {
+        const isMember = user.organizationMemberships.some(
+          (m) => m.organizationId === targetOrgId,
+        );
+        if (!isMember) {
+          throw new ForbiddenException('You can only access tasks from your organization');
+        }
+      }
+      where.organizationId = targetOrgId;
     }
 
-    if (organizationId) {
-      if (user.role !== 'ADMIN' && organizationId !== user.organizationId) {
-        throw new ForbiddenException('You can only access tasks from your organization');
-      }
-      where.organizationId = organizationId;
+    if (user.role === 'MEMBER') {
+      where.assignedTo = { some: { id: user.id } };
     }
 
     if (status) where.status = status;
@@ -267,11 +272,12 @@ export class TasksService {
     const task = await this.findOne(id);
 
     // Validate organization access
-    if (user.role === 'MEMBER' && task.organizationId !== user.organizationId) {
-      throw new ForbiddenException('You can only update tasks in your organization');
-    }
-    if (user.role === 'ORG_ADMIN' && task.organizationId !== user.organizationId) {
-      throw new ForbiddenException('You can only update tasks in your organization');
+    const isMember = user.organizationMemberships.some(
+      (m) => m.organizationId === task.organizationId,
+    );
+
+    if (user.role !== 'ADMIN' && !isMember) {
+      throw new ForbiddenException('You can only update tasks in an organization you belong to');
     }
 
     const { assignedToIds, blockedByIds, dueDate, ...taskData } = updateTaskDto;
@@ -415,17 +421,27 @@ export class TasksService {
     return result;
   }
 
-  async findAllGroupedByStatus(user: CurrentUserData): Promise<Record<string, any[]>> {
+  async findAllGroupedByStatus(organizationId: string | undefined, user: CurrentUserData): Promise<Record<string, any[]>> {
+    const orgId = organizationId || user.organizationId;
+    
     // Build where clause based on user role
     const where: any = { isActive: true };
 
-    if (user.role === 'MEMBER') {
-      where.organizationId = user.organizationId;
-      where.assignedTo = { some: { id: user.id } };
-    } else if (user.role === 'ORG_ADMIN') {
-      where.organizationId = user.organizationId;
+    if (orgId) {
+      if (user.role !== 'ADMIN') {
+        const isMember = user.organizationMemberships.some(
+          (m) => m.organizationId === orgId,
+        );
+        if (!isMember) {
+          throw new ForbiddenException('You can only access tasks from your organization');
+        }
+      }
+      where.organizationId = orgId;
     }
-    // ADMIN can see all tasks
+
+    if (user.role === 'MEMBER') {
+      where.assignedTo = { some: { id: user.id } };
+    }
 
     const tasks = await this.prisma.task.findMany({
       where,
@@ -454,11 +470,12 @@ export class TasksService {
     const task = await this.findOne(id);
 
     // Validate organization access
-    if (user.role === 'MEMBER' && task.organizationId !== user.organizationId) {
-      throw new ForbiddenException('You can only update tasks in your organization');
-    }
-    if (user.role === 'ORG_ADMIN' && task.organizationId !== user.organizationId) {
-      throw new ForbiddenException('You can only update tasks in your organization');
+    const isMember = user.organizationMemberships.some(
+      (m) => m.organizationId === task.organizationId,
+    );
+
+    if (user.role !== 'ADMIN' && !isMember) {
+      throw new ForbiddenException('You can only update tasks in an organization you belong to');
     }
 
     const updated = await this.prisma.task.update({
@@ -504,9 +521,11 @@ export class TasksService {
     }
 
     if (user.role !== 'ADMIN') {
-      const unauthorized = tasks.filter((t) => t.organizationId !== user.organizationId);
+      const unauthorized = tasks.filter((t) => {
+        return !user.organizationMemberships.some(m => m.organizationId === t.organizationId);
+      });
       if (unauthorized.length > 0) {
-        throw new ForbiddenException('You can only delete tasks in your organization');
+        throw new ForbiddenException('You can only delete tasks in organizations you belong to');
       }
     }
 
@@ -536,9 +555,11 @@ export class TasksService {
     }
 
     if (user.role !== 'ADMIN') {
-      const unauthorized = tasks.filter((t) => t.organizationId !== user.organizationId);
+      const unauthorized = tasks.filter((t) => {
+        return !user.organizationMemberships.some(m => m.organizationId === t.organizationId);
+      });
       if (unauthorized.length > 0) {
-        throw new ForbiddenException('You can only update tasks in your organization');
+        throw new ForbiddenException('You can only update tasks in organizations you belong to');
       }
     }
 
@@ -568,9 +589,11 @@ export class TasksService {
     }
 
     if (user.role !== 'ADMIN') {
-      const unauthorized = tasks.filter((t) => t.organizationId !== user.organizationId);
+      const unauthorized = tasks.filter((t) => {
+        return !user.organizationMemberships.some(m => m.organizationId === t.organizationId);
+      });
       if (unauthorized.length > 0) {
-        throw new ForbiddenException('You can only assign tasks in your organization');
+        throw new ForbiddenException('You can only assign tasks in organizations you belong to');
       }
     }
 
@@ -581,7 +604,7 @@ export class TasksService {
         include: {
           organizationMembers: {
             where: {
-              organizationId: user.organizationId,
+              organizationId: { in: tasks.map(t => t.organizationId) },
               isActive: true,
             },
           },
@@ -641,8 +664,11 @@ export class TasksService {
 
     // Validate organization access
     if (user.role !== 'ADMIN') {
-      if (task.organizationId !== user.organizationId || dependsOn.organizationId !== user.organizationId) {
-        throw new ForbiddenException('Both tasks must belong to your organization');
+      const isMemberTask = user.organizationMemberships.some(m => m.organizationId === task.organizationId);
+      const isMemberDependsOn = user.organizationMemberships.some(m => m.organizationId === dependsOn.organizationId);
+      
+      if (!isMemberTask || !isMemberDependsOn) {
+        throw new ForbiddenException('Both tasks must belong to organizations you are a member of');
       }
     }
 
