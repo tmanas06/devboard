@@ -194,19 +194,23 @@ export class TasksService {
       where.organizationId = targetOrgId;
     }
 
+    /* 
     if (user.role === 'MEMBER') {
       where.assignedTo = { some: { id: user.id } };
     }
+    */
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (assignedToIds && assignedToIds.length > 0) {
+      /*
       if (user.role === 'MEMBER') {
         const hasOtherUser = assignedToIds.some(id => id !== user.id);
         if (hasOtherUser) {
           throw new ForbiddenException('You can only view tasks assigned to yourself');
         }
       }
+      */
       where.assignedTo = { some: { id: { in: assignedToIds } } };
     }
     if (search) {
@@ -439,9 +443,11 @@ export class TasksService {
       where.organizationId = orgId;
     }
 
+    /*
     if (user.role === 'MEMBER') {
       where.assignedTo = { some: { id: user.id } };
     }
+    */
 
     const tasks = await this.prisma.task.findMany({
       where,
