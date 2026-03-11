@@ -182,28 +182,28 @@ export default function ActivityPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold">Activity</h1>
-                        <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-200">
+                        <h1 className="text-3xl font-bold uppercase tracking-widest text-neon-pink">Activity</h1>
+                        <span className="flex items-center gap-1.5 rounded-full bg-neon-green/10 px-2.5 py-1 text-xs font-medium text-neon-green border border-neon-green/20">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-neon-green" />
                             </span>
                             Live
                         </span>
                     </div>
-                    <p className="text-gray-500">Track all actions across your organization</p>
+                    <p className="text-muted-foreground font-mono tracking-widest mt-1 text-sm">// SYSTEM_TRACKER_V4.0</p>
                 </div>
-                <Button variant="outline" onClick={handleExport} className="gap-2">
+                <Button variant="outline" onClick={handleExport} className="gap-2 border-neon-cyan text-neon-cyan hover:bg-neon-cyan/20">
                     <Download className="h-4 w-4" />
                     Export CSV
                 </Button>
             </div>
 
             {/* Filters */}
-            <Card>
+            <Card className="bg-card border-border">
                 <CardContent className="py-4">
                     <div className="flex flex-wrap items-center gap-3">
-                        <Filter className="h-4 w-4 text-gray-500" />
+                        <Filter className="h-4 w-4 text-muted-foreground" />
                         <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); setPage(1); }}>
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder="Entity" />
@@ -265,9 +265,9 @@ export default function ActivityPage() {
             ) : isError ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
-                        <AlertCircle className="h-10 w-10 text-red-400" />
-                        <p className="text-gray-500">Failed to load activity feed.</p>
-                        <Button variant="outline" onClick={() => refetch()} className="gap-2">
+                        <AlertCircle className="h-10 w-10 text-destructive" />
+                        <p className="text-muted-foreground font-mono">Failed to load activity feed.</p>
+                        <Button variant="outline" onClick={() => refetch()} className="gap-2 border-neon-cyan text-neon-cyan hover:bg-neon-cyan/20">
                             <RefreshCw className="h-4 w-4" />
                             Try Again
                         </Button>
@@ -276,8 +276,8 @@ export default function ActivityPage() {
             ) : items.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
-                        <Inbox className="h-10 w-10 text-gray-300" />
-                        <p className="text-gray-500">No activity found. Actions will appear here as they happen.</p>
+                        <Inbox className="h-10 w-10 text-muted" />
+                        <p className="text-muted-foreground font-mono">No activity found. Actions will appear here as they happen.</p>
                     </CardContent>
                 </Card>
             ) : (
@@ -289,28 +289,28 @@ export default function ActivityPage() {
                         const description = getMetadataDescription(item.action, item.metadata);
 
                         return (
-                            <div key={item.id} className="flex gap-4 py-3 px-4 rounded-lg hover:bg-gray-50/80 transition-colors">
+                            <div key={item.id} className="flex gap-4 py-3 px-4 rounded-lg hover:bg-muted/50 transition-colors">
                                 {/* Timeline dot */}
                                 <div className="flex flex-col items-center">
-                                    <div className={`flex items-center justify-center h-8 w-8 rounded-full ${actionColors[item.action] || 'bg-gray-100 text-gray-600'}`}>
+                                    <div className={`flex items-center justify-center h-8 w-8 rounded-full border border-border bg-card ${actionColors[item.action] || 'bg-muted text-muted-foreground'}`}>
                                         {actionIcons[item.action] || <Activity className="h-4 w-4" />}
                                     </div>
-                                    {index < items.length - 1 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
+                                    {index < items.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0 pb-2">
                                     <div className="flex items-baseline gap-2 flex-wrap">
-                                        <span className="font-medium text-sm">{userName}</span>
-                                        <span className="text-sm text-gray-600">{actionLabels[item.action] || item.action}</span>
+                                        <span className="font-semibold text-sm text-foreground">{userName}</span>
+                                        <span className="text-sm text-muted-foreground">{actionLabels[item.action] || item.action}</span>
                                         <Badge variant="outline" className="text-xs">
                                             {item.entityType}
                                         </Badge>
                                     </div>
                                     {description && (
-                                        <p className="text-sm text-gray-500 mt-0.5 truncate">{description}</p>
+                                        <p className="text-sm text-muted-foreground/80 mt-0.5 truncate font-mono">{description}</p>
                                     )}
-                                    <p className="text-xs text-gray-400 mt-1">{formatDateTime(item.createdAt)}</p>
+                                    <p className="text-xs text-muted-foreground/60 mt-1 font-mono uppercase tracking-tighter">{formatDateTime(item.createdAt)}</p>
                                 </div>
                             </div>
                         );
@@ -320,8 +320,8 @@ export default function ActivityPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
+                <div className="flex items-center justify-between border-t border-border pt-4">
+                    <p className="text-sm text-muted-foreground font-mono">
                         Page {page} of {totalPages} ({data?.total || 0} total)
                     </p>
                     <div className="flex gap-2">
