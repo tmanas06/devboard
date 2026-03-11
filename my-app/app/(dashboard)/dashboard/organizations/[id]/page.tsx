@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Building2, Save, Loader2, Users, Settings, Activity, ArrowLeft, Shield, Clock, User } from 'lucide-react';
+import { Building2, Save, Loader2, Users, Settings, Activity, ArrowLeft, Shield, Clock, User, Trash2, Share2, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -123,6 +123,37 @@ export default function OrganizationDetailsPage({ params }: { params: Promise<{ 
     updateMutation.mutate(data);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      return api.delete(`/organizations/${organizationId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
+      });
+    },
+    onSuccess: () => {
+      toast({ title: 'Node Deactivated', description: 'Network node has been permanently deactivated.' });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      router.push('/dashboard/organizations');
+    },
+    onError: (err: any) => {
+      toast({ variant: 'destructive', title: 'Deactivation Failed', description: err.response?.data?.message || 'Could not deactivate node.' });
+    },
+  });
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to completely deactivate this network node? This action cannot be easily undone.')) {
+      deleteMutation.mutate();
+    }
+  };
+
+  const handleShare = () => {
+    if (organization) {
+      navigator.clipboard.writeText(`Join Network Node: ${organization.name} (ID: ${organization.id})`);
+      toast({ title: 'Coordinates Copied', description: 'Node details copied to clipboard. Share with other entities.' });
+    }
+  };
+
   const isCurrentOrgAdmins = userRole === 'ORG_ADMIN' && selectedOrgId === organizationId;
   const isGlobalAdmin = userRole === 'ADMIN';
   const canEdit = isCurrentOrgAdmins || isGlobalAdmin;
@@ -142,21 +173,28 @@ export default function OrganizationDetailsPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 border-b border-[#00f3ff]/20 pb-4">
-        <Link href="/dashboard/organizations">
-          <Button variant="ghost" size="icon" className="hover:text-[#00f3ff] hover:bg-[#00f3ff]/10">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-widest text-[#00f3ff] uppercase flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            {orgLoading ? 'Loading Node...' : organization?.name}
-          </h1>
-          <p className="text-gray-500 font-mono tracking-widest mt-1 text-sm">
-            // NODE_INSPECTION.EXE - {organization?.slug || 'SEARCHING'}
-          </p>
+      <div className="flex items-center gap-4 border-b border-[#00f3ff]/20 pb-4 justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/organizations">
+            <Button variant="ghost" size="icon" className="hover:text-[#00f3ff] hover:bg-[#00f3ff]/10">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-widest text-[#00f3ff] uppercase flex items-center gap-2">
+              <Building2 className="h-6 w-6" />
+              {orgLoading ? 'Loading Node...' : organization?.name}
+            </h1>
+            <p className="text-gray-500 font-mono tracking-widest mt-1 text-sm">
+              // NODE_INSPECTION.EXE - {organization?.slug || 'SEARCHING'}
+            </p>
+          </div>
         </div>
+        {!orgLoading && organization && (
+          <Button variant="outline" className="border-[#00f3ff] text-[#00f3ff] hover:bg-[#00f3ff] hover:text-black font-mono tracking-wider" onClick={handleShare}>
+            <Share2 className="mr-2 h-4 w-4" /> Share Node
+          </Button>
+        )}
       </div>
 
       {orgLoading ? (
@@ -314,7 +352,20 @@ export default function OrganizationDetailsPage({ params }: { params: Promise<{ 
                       </p>
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-gray-800">
+                    <div className="flex justify-between pt-4 border-t border-gray-800">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="bg-red-900/50 hover:bg-red-600 text-red-200 border-red-500/50 font-mono tracking-widest uppercase transition-all"
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deactivating...</>
+                        ) : (
+                          <><Trash2 className="mr-2 h-4 w-4" /> Deactivate Node</>
+                        )}
+                      </Button>
                       <Button type="submit" disabled={updateMutation.isPending || !form.formState.isDirty} className="bg-[#ff00ff] hover:bg-[#ff00ff]/80 text-black font-mono tracking-widest uppercase transition-all shadow-[0_0_10px_rgba(255,0,255,0.5)]">
                         {updateMutation.isPending ? (
                           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Patching...</>

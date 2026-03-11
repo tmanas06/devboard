@@ -105,6 +105,7 @@ export default function ManageOrganizationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
       setIsCreateOpen(false);
       form.reset();
       setError('');
@@ -359,7 +360,7 @@ export default function ManageOrganizationsPage() {
                               onClick={() => joinMutation.mutate(org.id)}
                               disabled={joinMutation.isPending}
                             >
-                              {joinMutation.isPending ? (
+                              {joinMutation.isPending && joinMutation.variables === org.id ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   Joining...
