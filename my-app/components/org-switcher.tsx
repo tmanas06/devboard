@@ -25,8 +25,8 @@ export function OrgSwitcher() {
     // Don't show switcher if user only belongs to one org
     if (userOrgs.length === 1) {
         return (
-            <div className="flex items-center gap-2 rounded-lg border border-[#00f3ff] bg-[#0a0a0a] px-3 py-2 text-[#00f3ff] font-mono tracking-wider glow-secondary">
-                <Building2 className="h-4 w-4 text-[#ff00ff] shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-sidebar px-3 py-2 text-foreground font-mono tracking-wider glow-secondary">
+                <Building2 className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-sm truncate">{selectedOrg?.name}</span>
             </div>
         );
@@ -39,16 +39,16 @@ export function OrgSwitcher() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between bg-[#0a0a0a] border-[#00f3ff] text-[#00f3ff] hover:bg-[#00f3ff]/10 hover:text-[#00f3ff] font-mono tracking-wider glow-secondary"
+                    className="w-full justify-between bg-sidebar border-sidebar-border text-sidebar-foreground hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground font-mono tracking-wider glow-secondary"
                 >
                     <div className="flex items-center gap-2 min-w-0">
-                        <Building2 className="h-4 w-4 text-[#ff00ff] shrink-0" />
+                        <Building2 className="h-4 w-4 text-sidebar-primary shrink-0" />
                         <span className="truncate text-sm">{selectedOrg?.name ?? 'Select organization'}</span>
                     </div>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[220px] p-1 border-[#00f3ff] bg-[#0a0a0a]" align="start">
+            <PopoverContent className="w-[220px] p-1 border-border bg-popover" align="start">
                 <div className="space-y-0.5">
                     {userOrgs.map((org) => {
                         const isActive = org.id === selectedOrg?.id;
@@ -62,8 +62,8 @@ export function OrgSwitcher() {
                                 className={cn(
                                     'flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-mono tracking-widest transition-colors',
                                     isActive
-                                        ? 'bg-[#ff00ff]/20 text-[#ff00ff] border border-[#ff00ff]'
-                                        : 'text-[#00f3ff] hover:bg-[#00f3ff]/10',
+                                        ? 'bg-primary/20 text-primary border border-primary'
+                                        : 'text-foreground hover:bg-foreground/10',
                                 )}
                             >
                                 <Building2 className="h-4 w-4 shrink-0" />
@@ -72,25 +72,25 @@ export function OrgSwitcher() {
                                     variant="secondary"
                                     className={cn(
                                         'text-[10px] px-1.5 py-0 border',
-                                        org.role === 'ORG_ADMIN' && 'border-[#fcee0a] text-[#fcee0a] bg-transparent',
-                                        org.role === 'MEMBER' && 'border-[#00f3ff] text-[#00f3ff] bg-transparent',
-                                        org.role === 'ADMIN' && 'border-[#ff00ff] text-[#ff00ff] bg-transparent',
+                                        org.role === 'ORG_ADMIN' && 'border-chart-3 text-chart-3 bg-transparent',
+                                        org.role === 'MEMBER' && 'border-chart-2 text-chart-2 bg-transparent',
+                                        org.role === 'ADMIN' && 'border-chart-1 text-chart-1 bg-transparent',
                                     )}
                                 >
                                     {org.role === 'ORG_ADMIN' ? 'Admin' : org.role === 'ADMIN' ? 'Super' : 'Member'}
                                 </Badge>
-                                {isActive && <Check className="h-4 w-4 text-[#ff00ff] shrink-0" />}
+                                {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}
                             </button>
                         );
                     })}
                 </div>
-                <div className="mt-2 border-t border-[#00f3ff]/20 pt-2">
+                <div className="mt-2 border-t border-border/20 pt-2">
                     <button
                         onClick={() => {
                             setOpen(false);
                             setShowCreateDialog(true);
                         }}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-[#00f3ff] font-mono transition-colors hover:bg-[#00f3ff]/10"
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground font-mono transition-colors hover:bg-foreground/10"
                     >
                         <Plus className="h-4 w-4" />
                         <span>Initialize Node</span>

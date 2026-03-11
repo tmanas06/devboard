@@ -302,13 +302,13 @@ export function KanbanBoard({ tasks: initialTasks, organizationId }: KanbanBoard
                         <div
                             className={cn(
                                 'rounded-xl border h-full flex flex-col transition-all duration-200',
-                                'bg-white dark:bg-gray-900/60',
-                                'border-gray-200 dark:border-gray-800',
+                                'bg-card',
+                                'border-border',
                                 isOver && 'ring-2 ring-indigo-400/60 border-indigo-300 dark:border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20'
                             )}
                         >
                             {/* Column Header */}
-                            <div className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3 shrink-0">
+                            <div className="px-4 py-3.5 border-b border-border flex items-center gap-3 shrink-0">
                                 <div className={cn('w-2.5 h-2.5 rounded-full shrink-0', column.dotColor)} />
                                 <h3 className={cn('text-xs font-semibold uppercase tracking-wide', column.color)}>
                                     {column.label}
@@ -392,8 +392,8 @@ function TaskCard({
                 onTouchMove={onTouchMove}
                 onTouchEnd={(e) => onTouchEnd(e, elRef.current!)}
                 className={cn(
-                    'group relative rounded-lg border-l-[3px] bg-white dark:bg-gray-800/80',
-                    'border border-gray-200/80 dark:border-gray-700/50',
+                    'group relative rounded-lg border-l-[3px] bg-card',
+                    'border border-border',
                     'p-3.5 cursor-grab active:cursor-grabbing select-none touch-none',
                     'hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600',
                     'transition-all duration-200',
@@ -407,7 +407,7 @@ function TaskCard({
                 </div>
 
                 {/* Title */}
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug pr-6 mb-2.5">
+                <h4 className="text-sm font-medium text-foreground leading-snug pr-6 mb-2.5">
                     {task.title}
                 </h4>
 
@@ -432,7 +432,7 @@ function TaskCard({
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-700/40">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border">
                     <div className="flex items-center gap-3">
                         {task.estimatedHours && (
                             <span className="flex items-center gap-1">

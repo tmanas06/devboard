@@ -4,6 +4,8 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { ThemeProvider } from '@/components/theme-provider';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -19,7 +21,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </ThemeProvider>
     </ClerkProvider>
   );
 }

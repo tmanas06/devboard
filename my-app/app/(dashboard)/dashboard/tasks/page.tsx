@@ -794,7 +794,7 @@ export default function TasksPage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {task.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {task.description}
                         </p>
                       )}
