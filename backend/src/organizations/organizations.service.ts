@@ -102,7 +102,6 @@ export class OrganizationsService {
             select: {
               members: true,
               tasks: true,
-              timeEntries: true,
             },
           },
         },
@@ -119,7 +118,6 @@ export class OrganizationsService {
           select: {
             members: true,
             tasks: true,
-            timeEntries: true,
           },
         },
       },
@@ -135,7 +133,6 @@ export class OrganizationsService {
           select: {
             members: true,
             tasks: true,
-            timeEntries: true,
           },
         },
       },

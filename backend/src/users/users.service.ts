@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createClerkClient } from '@clerk/backend';
 import { PrismaService } from '../prisma/prisma.service';
 import { CurrentUserData } from '../auth/decorators/current-user.decorator';
@@ -6,9 +7,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  private clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  private clerkClient;
 
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {
+    this.clerkClient = createClerkClient({
+      secretKey: this.configService.get('CLERK_SECRET_KEY'),
+    });
+  }
 
   async syncUserFromClerk(clerkUser: {
     id: string;

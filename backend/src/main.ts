@@ -11,6 +11,9 @@ async function bootstrap() {
     ? process.env.FRONTEND_URLS.split(',').map((origin) => origin.trim())
     : [
       'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',
     ];
 
   app.enableCors({
@@ -20,10 +23,11 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        // Disallow without throwing error to avoid generic 500s
+        callback(null, false);
       }
     },
     credentials: true,
