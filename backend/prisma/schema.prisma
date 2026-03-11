@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization - Multi-tenant root entity
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members     OrganizationMember[]
+  tasks       Task[]
+  timeEntries TimeEntry[]
+  activityLogs ActivityLog[]
+
+  @@map("organizations")
+}
+
+// OrganizationMember - Join table for User-Organization many-to-many relationship
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  organizationId String   @map("organization_id")
+  role           UserRole @default(MEMBER)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("organization_members")
+}
+
+// User - Team members with Clerk authentication
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique @map("clerk_id")
+  email     String
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organizationMembers OrganizationMember[]
+  assignedTasks       Task[]                @relation("AssignedTasks")
+  timeEntries         TimeEntry[]
+  comments            Comment[]
+  activityLogs        ActivityLog[]
+
+  @@index([clerkId])
+  @@map("users")
+}
+
+// Task - Work items
+model Task {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  title          String
+  description    String?      @db.Text
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  boardOrder     Int          @default(0) @map("board_order")
+  estimatedHours Float?       @map("estimated_hours")
+  dueDate        DateTime?    @map("due_date")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo   User[]       @relation("AssignedTasks")
+  timeEntries  TimeEntry[]  @relation("TimeEntryTasks")
+  comments     Comment[]
+  blockedBy    Task[]       @relation("TaskDependencies")
+  blocks       Task[]       @relation("TaskDependencies")
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([boardOrder])
+  @@index([organizationId, createdAt])
+  @@map("tasks")
+}
+
+// Comment - Discussion on tasks
+model Comment {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("comments")
+}
+
+// TimeEntry - Manual time logging
+model TimeEntry {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  startTime      DateTime @map("start_time")
+  endTime        DateTime @map("end_time")
+  hours          Float
+  description    String?  @db.Text
+  isBillable     Boolean  @default(false) @map("is_billable")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks        Task[]       @relation("TimeEntryTasks")
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([startTime])
+  @@index([organizationId, startTime])
+  @@map("time_entries")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  ORG_ADMIN
+  MEMBER
+}
+
+enum TaskStatus {
+  OPEN
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CLOSED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityAction {
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_STATUS_CHANGED
+  TASK_ASSIGNED
+  TASK_DELETED
+  TASK_BULK_DELETED
+  TASK_BULK_STATUS_CHANGED
+  TASK_BULK_ASSIGNED
+  TIME_ENTRY_CREATED
+  TIME_ENTRY_DELETED
+  TIME_ENTRY_BULK_DELETED
+  COMMENT_ADDED
+  COMMENT_DELETED
+}
+
+// ActivityLog - Audit trail for all user actions
+model ActivityLog {
+  id             String         @id @default(cuid())
+  organizationId String         @map("organization_id")
+  userId         String         @map("user_id")
+  action         ActivityAction
+  entityType     String         @map("entity_type")
+  entityId       String?        @map("entity_id")
+  metadata       Json?
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("activity_logs")
+}
